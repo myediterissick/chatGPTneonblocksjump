@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Neon Dash Maker</title>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: rgba(10, 14, 25, 0.78);
+      --panel2: rgba(255,255,255,0.06);
+      --txt: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --accent: rgba(130, 220, 255, 0.95);
+      --danger: rgba(255, 90, 120, 0.95);
+      --ok: rgba(120, 255, 160, 0.95);
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--txt);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      image-rendering: auto;
+    }
+
+    /* Overlay UI */
+    .ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: auto;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(620px, calc(100vw - 24px));
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+      padding: 18px 18px 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 14px;
+    }
+
+    .btn {
+      pointer-events: auto;
+      background: rgba(255,255,255,0.08);
+      color: var(--txt);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+      user-select: none;
+    }
+
+    .btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.18); }
+    .btn:active { transform: translateY(0px); }
+    .btn.primary { background: rgba(130,220,255,0.16); border-color: rgba(130,220,255,0.35); }
+    .btn.primary:hover { background: rgba(130,220,255,0.20); }
+    .btn.danger { background: rgba(255,90,120,0.14); border-color: rgba(255,90,120,0.30); }
+    .btn.ok { background: rgba(120,255,160,0.12); border-color: rgba(120,255,160,0.28); }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+
+    .list {
+      margin-top: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 10px;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 8px;
+    }
+    .item:last-child { margin-bottom: 0; }
+    .item:hover { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); }
+
+    .itemTitle { font-weight: 750; }
+    .itemMeta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .topbar {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      pointer-events: none;
+    }
+    .chip {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .editorPanel {
+      pointer-events: auto;
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: min(420px, calc(100vw - 24px));
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+      padding: 12px;
+    }
+
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      color: var(--txt);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 10px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+
+    .seg {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.07);
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .hide { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div class="ui" id="ui">
+
+    <!-- Top HUD (during play) -->
+    <div class="topbar hide" id="hud">
+      <div class="chip" id="hudLevel">Level</div>
+      <div class="chip" id="hudProgress">0%</div>
+      <button class="btn" id="btnPause" title="Pause (Esc)">Pause</button>
+      <button class="btn" id="btnRestart" title="Restart (R)">Restart</button>
+      <button class="btn" id="btnMenu" title="Main Menu (M)">Menu</button>
+    </div>
+
+    <!-- Main menu -->
+    <div class="panel" id="menu">
+      <h1>Neon Dash Maker</h1>
+      <p class="subtitle">
+        A Geometry Dash–style runner: <b>one-button jump</b>, tough-but-fair levels, skins, and a built-in level creator.
+        <br/><span style="opacity:.9">Tip: press <span class="kbd">Space</span> or click/tap to jump.</span>
+      </p>
+      <div class="row">
+        <button class="btn primary" id="goPlay">Play</button>
+        <button class="btn" id="goSkins">Skins</button>
+        <button class="btn" id="goEditor">Create Level</button>
+      </div>
+      <p class="small">
+        Controls: <span class="kbd">Space</span>/<span class="kbd">Click</span> Jump · <span class="kbd">R</span> Restart · <span class="kbd">Esc</span> Pause/Menu · <span class="kbd">M</span> Main Menu
+      </p>
+    </div>
+
+    <!-- Level select -->
+    <div class="panel hide" id="levelSelect">
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <h1 style="margin-bottom: 2px;">Choose a Level</h1>
+          <div class="subtitle" style="margin: 0;">5 built-in levels + your custom ones.</div>
+        </div>
+        <button class="btn" id="backToMenu1">Back</button>
+      </div>
+
+      <div class="list" id="levelList"></div>
+
+      <p class="small">
+        Built-in levels are balanced to be challenging but beatable.
+        Custom levels save to your browser (localStorage).
+      </p>
+    </div>
+
+    <!-- Skins -->
+    <div class="panel hide" id="skins">
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <h1 style="margin-bottom: 2px;">Skins</h1>
+          <div class="subtitle" style="margin: 0;">Pick a look for your cube.</div>
+        </div>
+        <button class="btn" id="backToMenu2">Back</button>
+      </div>
+
+      <div class="list" id="skinList"></div>
+
+      <p class="small">
+        Skins are purely cosmetic (hitbox stays fair).
+      </p>
+    </div>
+
+    <!-- Editor -->
+    <div class="editorPanel hide" id="editorPanel">
+      <div class="row" style="justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div style="font-weight:800; font-size: 18px; margin-bottom: 4px;">Level Creator</div>
+          <div class="subtitle" style="margin: 0;">Place obstacles. Test. Save. Export/Import.</div>
+        </div>
+        <div class="row" style="gap: 8px;">
+          <button class="btn" id="exitEditor">Exit</button>
+        </div>
+      </div>
+
+      <div style="height: 10px;"></div>
+
+      <label>Level name</label>
+      <input type="text" id="edName" placeholder="My Challenge Run" />
+
+      <div style="height: 10px;"></div>
+
+      <div class="row" style="justify-content: space-between;">
+        <div style="flex:1; min-width: 160px;">
+          <label>Tool</label>
+          <div class="seg">
+            <button class="btn" id="toolSpike">Spike</button>
+            <button class="btn" id="toolBlock">Block</button>
+            <button class="btn danger" id="toolEraser">Eraser</button>
+          </div>
+        </div>
+        <div style="flex:1; min-width: 160px;">
+          <label>Size</label>
+          <div class="seg">
+            <button class="btn" id="sizeS">Small</button>
+            <button class="btn" id="sizeM">Med</button>
+            <button class="btn" id="sizeL">Large</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 10px;"></div>
+
+      <label>Level length (world units)</label>
+      <div class="row">
+        <input type="number" id="edLength" min="1800" step="100" value="3200" />
+        <button class="btn" id="snapToEnd">Snap Camera To End</button>
+      </div>
+
+      <div style="height: 10px;"></div>
+
+      <div class="row">
+        <button class="btn ok" id="edTest">Test Play</button>
+        <button class="btn primary" id="edSave">Save</button>
+        <button class="btn danger" id="edDelete">Delete</button>
+      </div>
+
+      <div style="height: 10px;"></div>
+
+      <label>Export / Import (JSON)</label>
+      <textarea id="edJSON" placeholder="Export will appear here. Paste JSON here to import."></textarea>
+      <div class="row" style="margin-top: 8px;">
+        <button class="btn" id="edExport">Export</button>
+        <button class="btn" id="edImport">Import</button>
+        <button class="btn" id="edClearBox">Clear Box</button>
+      </div>
+
+      <p class="small">
+        Editor Controls: <span class="kbd">Click</span> place · <span class="kbd">Right-click</span> erase ·
+        <span class="kbd">Space</span> jump (in test) · <span class="kbd">R</span> restart ·
+        <span class="kbd">Esc</span> exit test/pause · <span class="kbd">Mouse Wheel</span> scroll.
+      </p>
+    </div>
+
+    <!-- Simple modal (pause/win/dead) -->
+    <div class="panel hide" id="modal">
+      <h1 id="modalTitle">Paused</h1>
+      <p class="subtitle" id="modalText"> </p>
+      <div class="row" id="modalButtons"></div>
+      <p class="small" id="modalHint"></p>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // ---------- Canvas setup ----------
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+
+    const ui = {
+      hud: document.getElementById("hud"),
+      hudLevel: document.getElementById("hudLevel"),
+      hudProgress: document.getElementById("hudProgress"),
+      btnPause: document.getElementById("btnPause"),
+      btnRestart: document.getElementById("btnRestart"),
+      btnMenu: document.getElementById("btnMenu"),
+
+      menu: document.getElementById("menu"),
+      levelSelect: document.getElementById("levelSelect"),
+      skins: document.getElementById("skins"),
+      levelList: document.getElementById("levelList"),
+      skinList: document.getElementById("skinList"),
+
+      goPlay: document.getElementById("goPlay"),
+      goSkins: document.getElementById("goSkins"),
+      goEditor: document.getElementById("goEditor"),
+      backToMenu1: document.getElementById("backToMenu1"),
+      backToMenu2: document.getElementById("backToMenu2"),
+
+      modal: document.getElementById("modal"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalText: document.getElementById("modalText"),
+      modalButtons: document.getElementById("modalButtons"),
+      modalHint: document.getElementById("modalHint"),
+
+      editorPanel: document.getElementById("editorPanel"),
+      exitEditor: document.getElementById("exitEditor"),
+      edName: document.getElementById("edName"),
+      toolSpike: document.getElementById("toolSpike"),
+      toolBlock: document.getElementById("toolBlock"),
+      toolEraser: document.getElementById("toolEraser"),
+      sizeS: document.getElementById("sizeS"),
+      sizeM: document.getElementById("sizeM"),
+      sizeL: document.getElementById("sizeL"),
+      edLength: document.getElementById("edLength"),
+      snapToEnd: document.getElementById("snapToEnd"),
+      edTest: document.getElementById("edTest"),
+      edSave: document.getElementById("edSave"),
+      edDelete: document.getElementById("edDelete"),
+      edJSON: document.getElementById("edJSON"),
+      edExport: document.getElementById("edExport"),
+      edImport: document.getElementById("edImport"),
+      edClearBox: document.getElementById("edClearBox"),
+    };
+
+    function resize() {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.floor(innerWidth * dpr);
+      canvas.height = Math.floor(innerHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    // ---------- Helpers ----------
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    // ---------- Skins ----------
+    const SKINS = [
+      { id: "ice", name: "Ice Cube", c1: "rgba(140,220,255,0.95)", c2: "rgba(255,255,255,0.55)", trail: "rgba(130,220,255,0.22)" },
+      { id: "ember", name: "Ember", c1: "rgba(255,120,80,0.95)", c2: "rgba(255,240,200,0.45)", trail: "rgba(255,140,120,0.20)" },
+      { id: "toxic", name: "Toxic", c1: "rgba(120,255,160,0.95)", c2: "rgba(240,255,200,0.45)", trail: "rgba(120,255,160,0.18)" },
+      { id: "violet", name: "Violet Pulse", c1: "rgba(190,120,255,0.95)", c2: "rgba(255,255,255,0.35)", trail: "rgba(190,120,255,0.18)" },
+      { id: "mono", name: "Monochrome", c1: "rgba(255,255,255,0.90)", c2: "rgba(120,140,170,0.50)", trail: "rgba(255,255,255,0.14)" },
+    ];
+
+    const STORAGE = {
+      skin: "neondash_skin",
+      customs: "neondash_custom_levels",
+      best: "neondash_best",
+    };
+
+    function loadSkinId() {
+      return localStorage.getItem(STORAGE.skin) || SKINS[0].id;
+    }
+    function saveSkinId(id) {
+      localStorage.setItem(STORAGE.skin, id);
+    }
+    function getSkin() {
+      const id = loadSkinId();
+      return SKINS.find(s => s.id === id) || SKINS[0];
+    }
+
+    // ---------- Levels ----------
+    // Obstacle types:
+    // - spike: triangular hazard on ground (we use a fair slightly-shrunk rectangle hitbox)
+    // - block: solid block (hitbox rectangle)
+    // Each obstacle: {x, type, size} where size: 1 small, 2 med, 3 large
+    const BUILTIN_LEVELS = [
+      makeLevel("Neon Start", 2600, 330, [
+        s(500,1), s(650,1), b(820,1), s(980,2), s(1120,1), b(1280,1),
+        s(1460,2), s(1600,2), b(1760,1), s(1950,1), s(2060,1),
+        b(2200,2), s(2400,2),
+      ]),
+      makeLevel("Pulse District", 3200, 360, [
+        s(520,1), b(700,1), s(850,2), s(980,1), b(1120,1),
+        s(1300,2), b(1460,2), s(1650,1), s(1780,2),
+        b(1950,1), s(2120,3), s(2320,2), b(2500,2), s(2750,2), s(2920,1)
+      ]),
+      makeLevel("Arc Reactor", 3900, 390, [
+        s(540,2), s(680,2), b(860,1), s(1030,1), b(1180,2),
+        s(1400,3), s(1560,2), b(1720,1), s(1900,2), b(2050,2),
+        s(2260,2), s(2420,3), b(2620,1), s(2800,2), b(3020,2), s(3300,3), s(3500,2),
+      ]),
+      makeLevel("Night Circuit", 4700, 420, [
+        s(560,2), b(740,1), s(900,2), s(1040,2), b(1240,2),
+        s(1460,1), s(1560,3), b(1760,2), s(1960,2), b(2140,1),
+        s(2300,3), s(2460,2), b(2640,2),
+        s(2860,2), b(3040,2), s(3280,3), s(3460,2),
+        b(3720,2), s(3980,3), s(4180,2), b(4400,2)
+      ]),
+      makeLevel("Final Flux", 5600, 450, [
+        s(580,2), s(720,2), b(900,2),
+        s(1120,3), b(1320,1), s(1500,2), s(1640,3),
+        b(1820,2), s(2050,2), b(2240,2),
+        s(2460,3), s(2620,2), b(2820,2),
+        s(3040,3), b(3220,2), s(3450,2), s(3580,3),
+        b(3820,2), s(4050,3), s(4200,2), b(4400,2),
+        s(4660,3), s(4820,3), b(5000,2), s(5200,3), s(5380,2)
+      ]),
+    ];
+
+    function s(x, size=2){ return {x, type:"spike", size}; }
+    function b(x, size=2){ return {x, type:"block", size}; }
+
+    function makeLevel(name, length, speed, obstacles) {
+      return { id: "builtin_" + name.toLowerCase().replace(/\s+/g,"_"), name, length, speed, obstacles };
+    }
+
+    function loadCustomLevels() {
+      try {
+        const raw = localStorage.getItem(STORAGE.customs);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+    function saveCustomLevels(levels) {
+      localStorage.setItem(STORAGE.customs, JSON.stringify(levels));
+    }
+
+    function loadBest() {
+      try { return JSON.parse(localStorage.getItem(STORAGE.best) || "{}") || {}; }
+      catch { return {}; }
+    }
+    function saveBest(best) {
+      localStorage.setItem(STORAGE.best, JSON.stringify(best));
+    }
+
+    // ---------- Game state ----------
+    const State = {
+      MENU: "menu",
+      LEVEL_SELECT: "level_select",
+      SKINS: "skins",
+      PLAY: "play",
+      PAUSE: "pause",
+      DEAD: "dead",
+      WIN: "win",
+      EDITOR: "editor",
+      EDIT_TEST: "edit_test",
+    };
+
+    let state = State.MENU;
+
+    const world = {
+      gravity: 2400,
+      jumpV: 780,
+      groundH: 90,
+      grid: 30,
+    };
+
+    // Player (auto-run)
+    const player = {
+      w: 44,
+      h: 44,
+      xScreenRatio: 0.26,
+      y: 0,
+      vy: 0,
+      rot: 0,
+      onGround: false,
+      alive: true,
+      trail: [],
+    };
+
+    // Camera/world
+    let currentLevel = null;
+    let cameraX = 0;
+    let progress = 0;
+
+    // Menu demo runner (background)
+    const demo = {
+      cameraX: 0,
+      speed: 330,
+      t: 0,
+      playerY: 0,
+      vy: 0,
+      onGround: true,
+      rot: 0,
+      obstacles: [
+        {x: 520, type:"spike", size:2},
+        {x: 720, type:"spike", size:2},
+        {x: 960, type:"block", size:1},
+        {x: 1180, type:"spike", size:3},
+        {x: 1440, type:"spike", size:2},
+        {x: 1680, type:"block", size:2},
+        {x: 1980, type:"spike", size:3},
+      ],
+      length: 2400
+    };
+
+    // Editor
+    const editor = {
+      tool: "spike",   // spike | block | eraser
+      size: 2,         // 1|2|3
+      length: 3200,
+      name: "",
+      obstacles: [],
+      cameraX: 0,
+      idEditing: null, // existing custom level id
+      hoverX: 0,
+      hoverY: 0,
+      hoverOnGround: true,
+    };
+
+    // ---------- UI wiring ----------
+    function showOnly(panelId) {
+      ui.menu.classList.toggle("hide", panelId !== "menu");
+      ui.levelSelect.classList.toggle("hide", panelId !== "levelSelect");
+      ui.skins.classList.toggle("hide", panelId !== "skins");
+      ui.editorPanel.classList.toggle("hide", panelId !== "editorPanel");
+      ui.modal.classList.add("hide");
+    }
+
+    function setHUD(visible) {
+      ui.hud.classList.toggle("hide", !visible);
+    }
+
+    ui.goPlay.onclick = () => { buildLevelList(); state = State.LEVEL_SELECT; showOnly("levelSelect"); setHUD(false); };
+    ui.goSkins.onclick = () => { buildSkinList(); state = State.SKINS; showOnly("skins"); setHUD(false); };
+    ui.goEditor.onclick = () => { startEditor(null); };
+
+    ui.backToMenu1.onclick = () => { state = State.MENU; showOnly("menu"); setHUD(false); };
+    ui.backToMenu2.onclick = () => { state = State.MENU; showOnly("menu"); setHUD(false); };
+
+    ui.btnPause.onclick = () => togglePause();
+    ui.btnRestart.onclick = () => restartLevel();
+    ui.btnMenu.onclick = () => goMenuFromPlay();
+
+    ui.exitEditor.onclick = () => {
+      if (state === State.EDIT_TEST) {
+        // exit test back to editor
+        state = State.EDITOR;
+        showOnly("editorPanel");
+        setHUD(false);
+      } else {
+        state = State.MENU;
+        showOnly("menu");
+        setHUD(false);
+      }
+    };
+
+    // Editor tool buttons
+    function markToolButtons() {
+      const on = (btn, yes) => btn.classList.toggle("primary", yes);
+      on(ui.toolSpike, editor.tool === "spike");
+      on(ui.toolBlock, editor.tool === "block");
+      on(ui.toolEraser, editor.tool === "eraser");
+
+      const sizeBtn = (btn, s) => btn.classList.toggle("primary", editor.size === s);
+      sizeBtn(ui.sizeS, 1); sizeBtn(ui.sizeM, 2); sizeBtn(ui.sizeL, 3);
+    }
+
+    ui.toolSpike.onclick = () => { editor.tool = "spike"; markToolButtons(); };
+    ui.toolBlock.onclick = () => { editor.tool = "block"; markToolButtons(); };
+    ui.toolEraser.onclick = () => { editor.tool = "eraser"; markToolButtons(); };
+    ui.sizeS.onclick = () => { editor.size = 1; markToolButtons(); };
+    ui.sizeM.onclick = () => { editor.size = 2; markToolButtons(); };
+    ui.sizeL.onclick = () => { editor.size = 3; markToolButtons(); };
+
+    ui.edLength.oninput = () => {
+      editor.length = Math.max(1800, parseInt(ui.edLength.value || "3200", 10));
+      ui.edLength.value = String(editor.length);
+    };
+
+    ui.snapToEnd.onclick = () => {
+      editor.cameraX = Math.max(0, editor.length - getViewW() * 0.9);
+    };
+
+    ui.edTest.onclick = () => {
+      // Test play in editor level
+      const lvl = makeLevel(ui.edName.value.trim() || "Untitled", editor.length, 360, cloneObstacles(editor.obstacles));
+      currentLevel = lvl;
+      startPlayFromEditor();
+    };
+
+    ui.edSave.onclick = () => {
+      const name = ui.edName.value.trim() || "Untitled";
+      editor.name = name;
+
+      const customs = loadCustomLevels();
+      const payload = {
+        id: editor.idEditing || ("custom_" + cryptoId()),
+        name,
+        length: editor.length,
+        speed: 360,
+        obstacles: cloneObstacles(editor.obstacles),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const idx = customs.findIndex(l => l.id === payload.id);
+      if (idx >= 0) customs[idx] = payload;
+      else customs.unshift(payload);
+
+      saveCustomLevels(customs);
+      editor.idEditing = payload.id;
+
+      flashModal("Saved!", `"${name}" saved to your browser.`, [
+        { label: "Keep Editing", cls: "primary", onClick: () => hideModal() },
+        { label: "Play It", cls: "ok", onClick: () => { hideModal(); currentLevel = payload; startPlayFromEditor(false); } },
+      ], `Tip: you can export JSON to share your level.`);
+    };
+
+    ui.edDelete.onclick = () => {
+      const id = editor.idEditing;
+      if (!id) {
+        flashModal("Nothing to delete", "Save your level first, then you can delete it.", [
+          { label: "OK", cls: "primary", onClick: () => hideModal() },
+        ]);
+        return;
+      }
+      const customs = loadCustomLevels().filter(l => l.id !== id);
+      saveCustomLevels(customs);
+      editor.idEditing = null;
+
+      flashModal("Deleted", "Your custom level was deleted from this browser.", [
+        { label: "OK", cls: "primary", onClick: () => hideModal() },
+      ]);
+    };
+
+    ui.edExport.onclick = () => {
+      const lvl = {
+        id: editor.idEditing || ("custom_" + cryptoId()),
+        name: ui.edName.value.trim() || "Untitled",
+        length: editor.length,
+        speed: 360,
+        obstacles: cloneObstacles(editor.obstacles),
+      };
+      ui.edJSON.value = JSON.stringify(lvl, null, 2);
+    };
+
+    ui.edImport.onclick = () => {
+      try {
+        const obj = JSON.parse(ui.edJSON.value);
+        if (!obj || !Array.isArray(obj.obstacles)) throw new Error("Invalid JSON");
+        startEditor(obj);
+        flashModal("Imported", `Loaded "${editor.name || "Untitled"}" into the editor.`, [
+          { label: "OK", cls: "primary", onClick: () => hideModal() },
+        ]);
+      } catch (e) {
+        flashModal("Import failed", "That JSON doesn't look like a level export. Try exporting first, then re-import.", [
+          { label: "OK", cls: "primary", onClick: () => hideModal() },
+        ]);
+      }
+    };
+
+    ui.edClearBox.onclick = () => ui.edJSON.value = "";
+
+    function cryptoId() {
+      // short random id (fallback if crypto missing)
+      const s = (crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(2)) : [Math.random()*1e9, Math.random()*1e9];
+      return (Math.floor(s[0]).toString(16) + Math.floor(s[1]).toString(16)).slice(0, 10);
+    }
+
+    function cloneObstacles(obstacles) {
+      return obstacles.map(o => ({ x: o.x, type: o.type, size: o.size }));
+    }
+
+    function buildLevelList() {
+      ui.levelList.innerHTML = "";
+      const best = loadBest();
+      const customs = loadCustomLevels();
+
+      const header = (txt) => {
+        const div = document.createElement("div");
+        div.style.margin = "6px 0 10px";
+        div.style.fontWeight = "850";
+        div.style.color = "rgba(255,255,255,0.85)";
+        div.textContent = txt;
+        ui.levelList.appendChild(div);
+      };
+
+      header("Built-in");
+      BUILTIN_LEVELS.forEach((lvl, i) => ui.levelList.appendChild(levelItem(lvl, i+1, best[lvl.id])));
+
+      header("Custom");
+      if (customs.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "item";
+        empty.innerHTML = `<div><div class="itemTitle">No custom levels yet</div><div class="itemMeta">Click “Create Level” in the menu to make one.</div></div>`;
+        ui.levelList.appendChild(empty);
+      } else {
+        customs.forEach((lvl) => ui.levelList.appendChild(levelItem(lvl, "★", best[lvl.id], true)));
+      }
+    }
+
+    function levelItem(lvl, badge, bestPct, isCustom=false) {
+      const div = document.createElement("div");
+      div.className = "item";
+      const meta = [
+        `Length: ${lvl.length}`,
+        `Speed: ${Math.round(lvl.speed)}`,
+        bestPct != null ? `Best: ${bestPct}%` : `Best: —`,
+        isCustom ? "Custom" : "Built-in"
+      ].join(" · ");
+
+      const left = document.createElement("div");
+      left.innerHTML = `<div class="itemTitle">${badge}. ${escapeHtml(lvl.name)}</div><div class="itemMeta">${meta}</div>`;
+
+      const right = document.createElement("div");
+      right.className = "row";
+      right.style.gap = "8px";
+
+      const playBtn = document.createElement("button");
+      playBtn.className = "btn primary";
+      playBtn.textContent = "Play";
+      playBtn.onclick = () => { startLevel(lvl); };
+
+      right.appendChild(playBtn);
+
+      if (isCustom) {
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn";
+        editBtn.textContent = "Edit";
+        editBtn.onclick = () => startEditor(lvl);
+        right.appendChild(editBtn);
+      }
+
+      div.appendChild(left);
+      div.appendChild(right);
+      return div;
+    }
+
+    function buildSkinList() {
+      ui.skinList.innerHTML = "";
+      const cur = loadSkinId();
+
+      SKINS.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "item";
+
+        const left = document.createElement("div");
+        left.innerHTML = `<div class="itemTitle">${escapeHtml(s.name)}</div><div class="itemMeta">${s.id === cur ? "Selected" : "Click Select"}</div>`;
+
+        const right = document.createElement("div");
+        right.className = "row";
+        right.style.gap = "8px";
+
+        const swatch = document.createElement("div");
+        swatch.style.width = "34px";
+        swatch.style.height = "34px";
+        swatch.style.borderRadius = "12px";
+        swatch.style.border = "1px solid rgba(255,255,255,0.14)";
+        swatch.style.background = `linear-gradient(135deg, ${s.c1}, ${s.c2})`;
+
+        const btn = document.createElement("button");
+        btn.className = "btn primary";
+        btn.textContent = (s.id === cur) ? "Selected" : "Select";
+        btn.onclick = () => {
+          saveSkinId(s.id);
+          buildSkinList();
+        };
+
+        right.appendChild(swatch);
+        right.appendChild(btn);
+
+        div.appendChild(left);
+        div.appendChild(right);
+        ui.skinList.appendChild(div);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    // ---------- Modal helpers ----------
+    function flashModal(title, text, buttons, hint="") {
+      ui.modalTitle.textContent = title;
+      ui.modalText.textContent = text;
+      ui.modalHint.textContent = hint;
+
+      ui.modalButtons.innerHTML = "";
+      buttons.forEach(b => {
+        const btn = document.createElement("button");
+        btn.className = `btn ${b.cls || ""}`.trim();
+        btn.textContent = b.label;
+        btn.onclick = b.onClick;
+        ui.modalButtons.appendChild(btn);
+      });
+
+      ui.modal.classList.remove("hide");
+    }
+
+    function hideModal() {
+      ui.modal.classList.add("hide");
+    }
+
+    // ---------- Start/Stop flows ----------
+    function startLevel(lvl) {
+      currentLevel = normalizeLevel(lvl);
+      state = State.PLAY;
+      showOnly("none");
+      setHUD(true);
+      initRun();
+    }
+
+    function startPlayFromEditor(showEditorPanel=true) {
+      // called after setting currentLevel
+      state = State.EDIT_TEST;
+      showOnly(showEditorPanel ? "editorPanel" : "none");
+      // in test: hide editor panel so it feels like play
+      ui.editorPanel.classList.add("hide");
+      setHUD(true);
+      initRun();
+    }
+
+    function goMenuFromPlay() {
+      state = State.MENU;
+      showOnly("menu");
+      setHUD(false);
+      hideModal();
+    }
+
+    function restartLevel() {
+      if (!currentLevel) return;
+      initRun();
+      hideModal();
+      if (state === State.PAUSE) state = State.PLAY;
+      if (state === State.DEAD) state = State.PLAY;
+      if (state === State.WIN) state = State.PLAY;
+    }
+
+    function togglePause() {
+      if (state === State.PLAY) {
+        state = State.PAUSE;
+        flashModal("Paused", "Take a breath — then jump back in.", [
+          { label: "Resume", cls: "primary", onClick: () => { hideModal(); state = State.PLAY; } },
+          { label: "Restart", cls: "", onClick: () => { restartLevel(); } },
+          { label: "Menu", cls: "danger", onClick: () => { goMenuFromPlay(); } },
+        ], `Controls: Space/Click = Jump · R = Restart · Esc = Pause`);
+      } else if (state === State.PAUSE) {
+        hideModal();
+        state = State.PLAY;
+      }
+    }
+
+    function normalizeLevel(lvl) {
+      // ensure fields exist
+      return {
+        id: lvl.id || ("custom_" + cryptoId()),
+        name: lvl.name || "Untitled",
+        length: Math.max(1800, lvl.length || 3000),
+        speed: clamp(lvl.speed || 360, 260, 520),
+        obstacles: (lvl.obstacles || []).map(o => ({
+          x: Math.max(0, Math.floor(o.x || 0)),
+          type: (o.type === "block") ? "block" : "spike",
+          size: clamp(o.size || 2, 1, 3),
+        })).sort((a,b)=>a.x-b.x),
+      };
+    }
+
+    // ---------- Init run ----------
+    function initRun() {
+      cameraX = 0;
+      progress = 0;
+
+      player.y = getGroundY() - player.h;
+      player.vy = 0;
+      player.onGround = true;
+      player.alive = true;
+      player.rot = 0;
+      player.trail.length = 0;
+
+      ui.hudLevel.textContent = currentLevel ? `Level: ${currentLevel.name}` : "Level";
+      ui.hudProgress.textContent = "0%";
+    }
+
+    // ---------- Editor ----------
+    function startEditor(levelObjOrNull) {
+      state = State.EDITOR;
+      showOnly("editorPanel");
+      setHUD(false);
+
+      if (levelObjOrNull && levelObjOrNull.obstacles) {
+        const lvl = normalizeLevel(levelObjOrNull);
+        editor.idEditing = levelObjOrNull.id || null;
+        editor.name = lvl.name;
+        editor.length = lvl.length;
+        editor.obstacles = cloneObstacles(lvl.obstacles);
+      } else {
+        editor.idEditing = null;
+        editor.name = "";
+        editor.length = 3200;
+        editor.obstacles = [];
+      }
+
+      editor.cameraX = 0;
+      editor.tool = "spike";
+      editor.size = 2;
+
+      ui.edName.value = editor.name;
+      ui.edLength.value = String(editor.length);
+      markToolButtons();
+      ui.edJSON.value = "";
+    }
+
+    // ---------- Input ----------
+    let pointerDown = false;
+    let lastPointer = {x:0, y:0};
+
+    function onJump() {
+      if (state === State.PLAY || state === State.EDIT_TEST) {
+        if (player.onGround) {
+          player.vy = -world.jumpV;
+          player.onGround = false;
+        }
+      } else if (state === State.MENU) {
+        // quick access: space/click opens play
+        buildLevelList();
+        state = State.LEVEL_SELECT;
+        showOnly("levelSelect");
+      } else if (state === State.DEAD || state === State.WIN) {
+        restartLevel();
+      }
+    }
+
+    addEventListener("keydown", (e) => {
+      const k = e.key.toLowerCase();
+      if (k === " " || k === "spacebar") { e.preventDefault(); onJump(); }
+      if (k === "r") restartLevel();
+      if (k === "m") { if (state !== State.EDITOR) goMenuFromPlay(); }
+      if (k === "escape") {
+        if (state === State.PLAY) togglePause();
+        else if (state === State.PAUSE) togglePause();
+        else if (state === State.EDIT_TEST) { state = State.EDITOR; showOnly("editorPanel"); setHUD(false); }
+        else if (state === State.LEVEL_SELECT || state === State.SKINS) { state = State.MENU; showOnly("menu"); }
+      }
+    });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      pointerDown = true;
+      canvas.setPointerCapture(e.pointerId);
+      const p = getPointer(e);
+      lastPointer = p;
+
+      if (state === State.PLAY || state === State.EDIT_TEST || state === State.MENU) onJump();
+      if (state === State.EDITOR) editorPlaceAt(p.x, p.y, false);
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      const p = getPointer(e);
+      lastPointer = p;
+      if (state === State.EDITOR && pointerDown) {
+        // drag place/erase
+        editorPlaceAt(p.x, p.y, true);
+      }
+    });
+
+    canvas.addEventListener("pointerup", (e) => {
+      pointerDown = false;
+    });
+
+    canvas.addEventListener("contextmenu", (e) => {
+      if (state === State.EDITOR) {
+        e.preventDefault();
+        const p = getPointer(e);
+        // right-click erase
+        const prev = editor.tool;
+        editor.tool = "eraser";
+        editorPlaceAt(p.x, p.y, false);
+        editor.tool = prev;
+        markToolButtons();
+      }
+    });
+
+    // wheel scroll camera in editor
+    addEventListener("wheel", (e) => {
+      if (state !== State.EDITOR) return;
+      const delta = e.deltaY;
+      editor.cameraX = clamp(editor.cameraX + delta * 1.2, 0, Math.max(0, editor.length - getViewW() * 0.2));
+    }, { passive: true });
+
+    function getPointer(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left);
+      const y = (e.clientY - rect.top);
+      return {x, y};
+    }
+
+    function editorPlaceAt(screenX, screenY, isDrag) {
+      // Throttle drag placement so it doesn't spam
+      if (isDrag && (Math.abs(screenX - editor.hoverX) < 10 && Math.abs(screenY - editor.hoverY) < 10)) return;
+
+      const worldX = editor.cameraX + screenX;
+      const groundY = getGroundY();
+      const gx = Math.round(worldX / world.grid) * world.grid;
+
+      const type = editor.tool;
+      const size = editor.size;
+      const yOnGround = screenY > groundY - 220; // mostly place on ground zone
+
+      editor.hoverX = screenX;
+      editor.hoverY = screenY;
+      editor.hoverOnGround = yOnGround;
+
+      const key = (o) => `${o.type}:${o.x}:${o.size}`;
+
+      if (type === "eraser") {
+        // remove anything close to cursor
+        editor.obstacles = editor.obstacles.filter(o => Math.abs(o.x - gx) > world.grid * 0.6);
+        return;
+      }
+
+      // keep early area clear so it's not unfair
+      if (gx < 260) return;
+
+      // avoid duplicates near same x
+      const exists = editor.obstacles.some(o => Math.abs(o.x - gx) < world.grid * 0.5);
+      if (exists) return;
+
+      editor.obstacles.push({ x: gx, type: (type === "block") ? "block" : "spike", size });
+      editor.obstacles.sort((a,b)=>a.x-b.x);
+    }
+
+    function getViewW() { return innerWidth; }
+    function getViewH() { return innerHeight; }
+    function getGroundY() { return innerHeight - world.groundH; }
+
+    // ---------- Rendering ----------
+    function drawBackground(t, intensity=1) {
+      const w = innerWidth, h = innerHeight;
+      // base gradient
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, `rgba(10, 14, 26, ${0.98*intensity})`);
+      g.addColorStop(1, `rgba(3, 5, 12, ${0.98*intensity})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // soft nebula blobs
+      ctx.globalAlpha = 0.18 * intensity;
+      for (let i=0;i<6;i++){
+        const px = (Math.sin(t*0.22 + i*1.7)*0.5+0.5)*w;
+        const py = (Math.cos(t*0.18 + i*1.3)*0.5+0.5)*h*0.65;
+        const r = 220 + 90*Math.sin(t*0.35+i);
+        const gg = ctx.createRadialGradient(px, py, 10, px, py, r);
+        gg.addColorStop(0, "rgba(130,220,255,0.75)");
+        gg.addColorStop(1, "rgba(130,220,255,0)");
+        ctx.fillStyle = gg;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // stars
+      ctx.globalAlpha = 0.20 * intensity;
+      for (let i=0;i<120;i++){
+        const sx = (i*97 % w) + (t*12*i%13)*0.02;
+        const sy = (i*53 % h);
+        const tw = (Math.sin(t*1.2 + i)*0.5+0.5);
+        ctx.fillStyle = `rgba(255,255,255,${0.18+tw*0.22})`;
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFloor(camera, t) {
+      const w = innerWidth, h = innerHeight;
+      const gy = getGroundY();
+
+      // ground band
+      const gg = ctx.createLinearGradient(0, gy, 0, h);
+      gg.addColorStop(0, "rgba(255,255,255,0.06)");
+      gg.addColorStop(1, "rgba(0,0,0,0.35)");
+      ctx.fillStyle = gg;
+      ctx.fillRect(0, gy, w, h-gy);
+
+      // grid lines
+      ctx.globalAlpha = 0.25;
+      const step = 40;
+      const offset = -(camera % step);
+      for (let x = offset; x < w; x += step) {
+        ctx.strokeStyle = "rgba(130,220,255,0.10)";
+        ctx.beginPath();
+        ctx.moveTo(x, gy);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // horizon glow
+      ctx.globalAlpha = 0.6;
+      const glow = ctx.createLinearGradient(0, gy-40, 0, gy+40);
+      glow.addColorStop(0, "rgba(130,220,255,0)");
+      glow.addColorStop(0.5, "rgba(130,220,255,0.14)");
+      glow.addColorStop(1, "rgba(130,220,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, gy-40, w, 80);
+      ctx.globalAlpha = 1;
+    }
+
+    function obstacleDims(o) {
+      // sizes tuned to be challenging but fair
+      if (o.type === "spike") {
+        const base = [0, 46, 60, 74][o.size] || 60;
+        return { w: base, h: base };
+      } else { // block
+        const base = [0, 56, 74, 92][o.size] || 74;
+        return { w: base, h: base };
+      }
+    }
+
+    function drawObstacle(o, screenX, t) {
+      const gy = getGroundY();
+      const d = obstacleDims(o);
+
+      if (o.type === "spike") {
+        const x = screenX;
+        const y = gy;
+        // neon outline triangle
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = "rgba(255,90,120,0.22)";
+        ctx.strokeStyle = "rgba(255,90,120,0.85)";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(d.w * 0.5, -d.h);
+        ctx.lineTo(d.w, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // inner highlight
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.beginPath();
+        ctx.moveTo(d.w*0.18, -d.h*0.18);
+        ctx.lineTo(d.w*0.5, -d.h*0.85);
+        ctx.lineTo(d.w*0.82, -d.h*0.18);
+        ctx.stroke();
+
+        ctx.restore();
+      } else {
+        const x = screenX;
+        const y = gy - d.h;
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        const g = ctx.createLinearGradient(x, y, x + d.w, y + d.h);
+        g.addColorStop(0, "rgba(130,220,255,0.18)");
+        g.addColorStop(1, "rgba(255,255,255,0.08)");
+        ctx.fillStyle = g;
+        ctx.strokeStyle = "rgba(130,220,255,0.70)";
+        ctx.lineWidth = 2;
+        roundRect(x, y, d.w, d.h, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // tiny circuit lines
+        ctx.globalAlpha = 0.65;
+        ctx.strokeStyle = "rgba(255,255,255,0.14)";
+        ctx.beginPath();
+        ctx.moveTo(x + d.w*0.22, y + d.h*0.25);
+        ctx.lineTo(x + d.w*0.78, y + d.h*0.25);
+        ctx.moveTo(x + d.w*0.22, y + d.h*0.55);
+        ctx.lineTo(x + d.w*0.62, y + d.h*0.55);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    function roundRect(x,y,w,h,r){
+      const rr = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr, y);
+      ctx.arcTo(x+w, y, x+w, y+h, rr);
+      ctx.arcTo(x+w, y+h, x, y+h, rr);
+      ctx.arcTo(x, y+h, x, y, rr);
+      ctx.arcTo(x, y, x+w, y, rr);
+      ctx.closePath();
+    }
+
+    function drawPlayer(t, isDemo=false) {
+      const skin = getSkin();
+      const w = innerWidth, h = innerHeight;
+      const px = Math.floor(w * player.xScreenRatio);
+      const py = player.y;
+
+      // trail
+      ctx.save();
+      ctx.globalAlpha = 1;
+      for (let i=0;i<player.trail.length;i++){
+        const p = player.trail[i];
+        const alpha = i / player.trail.length;
+        ctx.fillStyle = skin.trail;
+        ctx.globalAlpha = alpha * 0.55;
+        roundRect(p.x, p.y, player.w, player.h, 10);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // body
+      ctx.save();
+      ctx.translate(px + player.w/2, py + player.h/2);
+      ctx.rotate(player.rot);
+
+      const g = ctx.createLinearGradient(-player.w/2, -player.h/2, player.w/2, player.h/2);
+      g.addColorStop(0, skin.c1);
+      g.addColorStop(1, skin.c2);
+
+      ctx.fillStyle = g;
+      ctx.strokeStyle = "rgba(255,255,255,0.20)";
+      ctx.lineWidth = 2;
+
+      roundRect(-player.w/2, -player.h/2, player.w, player.h, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      // face/mark
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      roundRect(-player.w*0.22, -player.h*0.12, player.w*0.44, player.h*0.24, 8);
+      ctx.fill();
+
+      // sparkle
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(255,255,255,0.30)";
+      ctx.fillRect(-player.w*0.35, -player.h*0.32, player.w*0.10, player.h*0.10);
+
+      ctx.restore();
+    }
+
+    function drawProgressBar(pct) {
+      const w = innerWidth;
+      const barW = Math.min(620, w - 24);
+      const x = (w - barW) / 2;
+      const y = 12;
+      const h = 10;
+
+      ctx.save();
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      roundRect(x, y, barW, h, 999);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = "rgba(130,220,255,0.55)";
+      roundRect(x, y, barW * clamp(pct, 0, 1), h, 999);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---------- Simulation ----------
+    let lastT = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.033, (now - lastT) / 1000);
+      lastT = now;
+
+      update(dt, now/1000);
+      render(now/1000);
+
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    function update(dt, t) {
+      if (state === State.MENU || state === State.LEVEL_SELECT || state === State.SKINS) {
+        updateDemo(dt, t);
+        return;
+      }
+
+      if (state === State.EDITOR) {
+        updateEditor(dt, t);
+        return;
+      }
+
+      if (state !== State.PLAY && state !== State.EDIT_TEST) return;
+
+      if (!currentLevel) return;
+
+      // camera moves
+      cameraX += currentLevel.speed * dt;
+
+      // physics
+      player.vy += world.gravity * dt;
+      player.y += player.vy * dt;
+
+      const groundY = getGroundY() - player.h;
+      if (player.y >= groundY) {
+        player.y = groundY;
+        player.vy = 0;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
+      }
+
+      // rotate in air a bit
+      const targetRot = player.onGround ? 0 : Math.PI * 0.9;
+      player.rot = lerp(player.rot, targetRot, dt * 6);
+
+      // trail
+      const px = Math.floor(innerWidth * player.xScreenRatio);
+      player.trail.unshift({ x: px, y: player.y });
+      if (player.trail.length > 12) player.trail.pop();
+
+      // collisions
+      const hit = getPlayerHitbox();
+      const obs = currentLevel.obstacles;
+
+      // check only nearby obstacles for speed
+      const viewLeft = cameraX - 120;
+      const viewRight = cameraX + innerWidth + 120;
+
+      for (let i=0;i<obs.length;i++){
+        const o = obs[i];
+        if (o.x < viewLeft) continue;
+        if (o.x > viewRight) break;
+
+        const d = obstacleDims(o);
+        let rect;
+
+        if (o.type === "spike") {
+          // fair, slightly smaller hitbox than visual triangle
+          rect = {
+            x: (o.x - cameraX) + d.w*0.18,
+            y: getGroundY() - d.h*0.68,
+            w: d.w*0.64,
+            h: d.h*0.68
+          };
+        } else {
+          rect = {
+            x: (o.x - cameraX),
+            y: getGroundY() - d.h,
+            w: d.w,
+            h: d.h
+          };
+        }
+
+        if (rectsOverlap(hit, rect)) {
+          // died
+          state = State.DEAD;
+          player.alive = false;
+          onEnd(false);
+          break;
+        }
+      }
+
+      // progress
+      progress = clamp(cameraX / currentLevel.length, 0, 1);
+      ui.hudProgress.textContent = `${Math.floor(progress*100)}%`;
+      drawProgressBar(progress);
+
+      // win condition
+      if (cameraX >= currentLevel.length) {
+        state = State.WIN;
+        onEnd(true);
+      }
+    }
+
+    function onEnd(won) {
+      const best = loadBest();
+      const pct = Math.floor(progress * 100);
+      const id = currentLevel?.id || "unknown";
+      const prev = best[id];
+
+      // save best percentage (for built-in & custom)
+      if (won) {
+        best[id] = 100;
+      } else {
+        if (prev == null || pct > prev) best[id] = pct;
+      }
+      saveBest(best);
+
+      const title = won ? "Level Complete!" : "You Crashed!";
+      const text = won
+        ? `Nice! You cleared "${currentLevel.name}".`
+        : `So close — you reached ${pct}%. Try again.`;
+
+      const btns = [
+        { label: "Restart", cls: "primary", onClick: () => { restartLevel(); } },
+        { label: "Level Select", cls: "", onClick: () => { buildLevelList(); state = State.LEVEL_SELECT; showOnly("levelSelect"); setHUD(false); hideModal(); } },
+        { label: "Menu", cls: "danger", onClick: () => { goMenuFromPlay(); } },
+      ];
+
+      if (state === State.EDIT_TEST) {
+        btns.splice(1, 0, { label: "Back to Editor", cls: "ok", onClick: () => { state = State.EDITOR; showOnly("editorPanel"); setHUD(false); hideModal(); } });
+      }
+
+      flashModal(title, text, btns, `Tip: Watch patterns. Jump later than you think on large spikes.`);
+    }
+
+    function getPlayerHitbox() {
+      const px = Math.floor(innerWidth * player.xScreenRatio);
+      // slightly smaller hitbox for fairness
+      const pad = 7;
+      return { x: px + pad, y: player.y + pad, w: player.w - pad*2, h: player.h - pad*2 };
+    }
+
+    function updateDemo(dt, t) {
+      demo.t += dt;
+      demo.cameraX += demo.speed * dt;
+      if (demo.cameraX > demo.length) demo.cameraX = 0;
+
+      const gy = getGroundY() - player.h;
+      demo.vy += world.gravity * dt;
+      demo.playerY += demo.vy * dt;
+
+      if (demo.playerY >= gy) {
+        demo.playerY = gy;
+        demo.vy = 0;
+        demo.onGround = true;
+      } else {
+        demo.onGround = false;
+      }
+
+      // auto-jump when obstacle is near
+      const px = innerWidth * player.xScreenRatio;
+      const worldPlayerX = demo.cameraX + px;
+
+      const next = demo.obstacles.find(o => o.x > worldPlayerX && o.x - worldPlayerX < 160);
+      if (next && demo.onGround) {
+        demo.vy = -world.jumpV;
+        demo.onGround = false;
+      }
+
+      demo.rot = lerp(demo.rot, demo.onGround ? 0 : Math.PI*0.9, dt*6);
+    }
+
+    function updateEditor(dt, t) {
+      // smooth follow cursor hover
+      const mx = lastPointer.x;
+      editor.hoverX = mx;
+      editor.hoverY = lastPointer.y;
+
+      // clamp camera
+      editor.cameraX = clamp(editor.cameraX, 0, Math.max(0, editor.length - getViewW() * 0.2));
+    }
+
+    function render(t) {
+      const w = innerWidth, h = innerHeight;
+
+      // background always
+      drawBackground(t, 1);
+
+      if (state === State.MENU || state === State.LEVEL_SELECT || state === State.SKINS) {
+        // demo background runner
+        drawFloor(demo.cameraX, t);
+        drawDemoObstacles(t);
+        drawDemoPlayer(t);
+        return;
+      }
+
+      if (state === State.EDITOR) {
+        drawEditorScene(t);
+        return;
+      }
+
+      // play scene
+      if (!currentLevel) return;
+
+      drawFloor(cameraX, t);
+      drawObstacles(currentLevel, cameraX, t);
+      drawPlayer(t);
+
+      // extra UI hint for editor test
+      if (state === State.EDIT_TEST) {
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        roundRect(12, innerHeight - 58, 420, 44, 14);
+        ctx.fill();
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = "14px ui-sans-serif, system-ui";
+        ctx.fillText("Editor Test: Esc = Back to Editor · Space/Click = Jump · R = Restart", 24, innerHeight - 30);
+        ctx.restore();
+      }
+
+      // draw progress bar top
+      drawProgressBar(progress);
+    }
+
+    function drawObstacles(level, cam, t) {
+      const viewLeft = cam - 120;
+      const viewRight = cam + innerWidth + 120;
+
+      // subtle guide: start zone line
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = "rgba(120,255,160,0.20)";
+      ctx.beginPath();
+      ctx.moveTo(260 - cam, getGroundY());
+      ctx.lineTo(260 - cam, getGroundY() - 120);
+      ctx.stroke();
+      ctx.restore();
+
+      for (let i=0;i<level.obstacles.length;i++){
+        const o = level.obstacles[i];
+        if (o.x < viewLeft) continue;
+        if (o.x > viewRight) break;
+        drawObstacle(o, o.x - cam, t);
+      }
+
+      // finish glow
+      const fx = level.length - cam;
+      if (fx > -200 && fx < innerWidth + 200) {
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        const g = ctx.createLinearGradient(fx-60, 0, fx+60, 0);
+        g.addColorStop(0, "rgba(120,255,160,0)");
+        g.addColorStop(0.5, "rgba(120,255,160,0.18)");
+        g.addColorStop(1, "rgba(120,255,160,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(fx-60, getGroundY()-220, 120, 240);
+
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = "rgba(120,255,160,0.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(fx, getGroundY()-220);
+        ctx.lineTo(fx, getGroundY()+20);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawDemoObstacles(t) {
+      const cam = demo.cameraX;
+      const viewLeft = cam - 120;
+      const viewRight = cam + innerWidth + 120;
+      for (let i=0;i<demo.obstacles.length;i++){
+        const o = demo.obstacles[i];
+        if (o.x < viewLeft) continue;
+        if (o.x > viewRight) continue;
+        drawObstacle(o, o.x - cam, t);
+      }
+    }
+
+    function drawDemoPlayer(t) {
+      // reuse player render but override y/rot temporarily
+      const savedY = player.y, savedRot = player.rot;
+
+      player.y = demo.playerY;
+      player.rot = demo.rot;
+
+      // lightweight trail in demo
+      player.trail.length = 0;
+      drawPlayer(t, true);
+
+      player.y = savedY;
+      player.rot = savedRot;
+    }
+
+    function drawEditorScene(t) {
+      const cam = editor.cameraX;
+
+      // floor + grid
+      drawFloor(cam, t);
+
+      // editor grid vertical
+      const gy = getGroundY();
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      const step = world.grid;
+      const offset = -(cam % step);
+      for (let x = offset; x < innerWidth; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, gy - 240);
+        ctx.lineTo(x, gy + 100);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // obstacles
+      const lvl = { obstacles: editor.obstacles, length: editor.length };
+      drawObstacles({ obstacles: editor.obstacles, length: editor.length }, cam, t);
+
+      // length marker
+      const endX = editor.length - cam;
+      if (endX > -200 && endX < innerWidth + 200) {
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = "rgba(255,255,255,0.40)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(endX, gy-260);
+        ctx.lineTo(endX, gy+40);
+        ctx.stroke();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = "rgba(255,255,255,0.80)";
+        ctx.font = "14px ui-sans-serif, system-ui";
+        ctx.fillText("END", endX + 8, gy - 240);
+        ctx.restore();
+      }
+
+      // placement preview
+      const worldX = cam + lastPointer.x;
+      const gx = Math.round(worldX / world.grid) * world.grid;
+      const screenX = gx - cam;
+
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = (editor.tool === "eraser") ? "rgba(255,90,120,0.75)" : "rgba(120,255,160,0.70)";
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(screenX, gy - 260);
+      ctx.lineTo(screenX, gy + 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // preview obstacle
+      if (editor.tool !== "eraser") {
+        const o = { x: gx, type: editor.tool, size: editor.size };
+        ctx.globalAlpha = 0.55;
+        drawObstacle(o, screenX, t);
+      } else {
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "rgba(255,90,120,0.12)";
+        roundRect(lastPointer.x - 24, lastPointer.y - 24, 48, 48, 12);
+        ctx.fill();
+      }
+
+      // top-left help
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      roundRect(12, 70, 520, 56, 14);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "14px ui-sans-serif, system-ui";
+      ctx.fillText("Editor: Click place · Right-click erase · Mouse wheel scroll · Keep it challenging, not impossible.", 24, 96);
+      ctx.font = "12px ui-sans-serif, system-ui";
+      ctx.fillStyle = "rgba(255,255,255,0.70)";
+      ctx.fillText(`Camera: ${Math.floor(editor.cameraX)} / ${editor.length}  |  Obstacles: ${editor.obstacles.length}`, 24, 114);
+
+      ctx.restore();
+    }
+
+    // ---------- Utility ----------
+    function startAtUI() {
+      state = State.MENU;
+      showOnly("menu");
+      setHUD(false);
+    }
+    startAtUI();
+    buildSkinList();
+
+  })();
+  </script>
+</body>
+</html>
